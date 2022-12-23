@@ -11,7 +11,11 @@ class SkillEntry(BaseModel):
     name: str
     category: str
 
+    class Config:
+        orm_mode = True
 
+
+# flaw: optional fields have default value. why: to achieve the same output, as original data
 class PlanningEntryIn(BaseModel):
     id: int
     originalId: str
@@ -29,12 +33,12 @@ class PlanningEntryIn(BaseModel):
 
     class Config:
         json_encoders = {
-            datetime: lambda v: v.strformat(DATETIME_FORMAT),
+            datetime: lambda v: v.strftime(DATETIME_FORMAT),
         }
 
     @validator('startDate', 'endDate', pre=True)
     def time_validate(cls, v):
-        return datetime.strptime(v, DATETIME_FORMAT)
+        return datetime.strptime(v, DATETIME_FORMAT) if isinstance(v, str) else v
 
 
 class TalentIn(BaseModel):
@@ -55,4 +59,30 @@ class PlanningEntryOut(PlanningEntryIn, TalentIn, ClientIn):
     optionalSkills: Optional[List[SkillEntry]] = []
 
     class Config(PlanningEntryIn.Config):
+        orm_mode = True
+
+
+class PlanningEntryModel(PlanningEntryIn):
+    requiredSkills: Optional[List[SkillEntry]] = []
+    optionalSkills: Optional[List[SkillEntry]] = []
+
+    class Config(PlanningEntryIn.Config):
+        orm_mode = True
+
+
+class TalentModel(BaseModel):
+    id: str = ""
+    name: str = ""
+    grade: str = ""
+
+    class Config:
+        orm_mode = True
+
+
+class ClientModel(BaseModel):
+    id: str
+    name: str = ""
+    industry: str = ""
+
+    class Config:
         orm_mode = True
