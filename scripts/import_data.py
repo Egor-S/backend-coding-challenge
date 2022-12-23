@@ -3,22 +3,8 @@ import json
 import argparse
 from pathlib import Path
 
-from sqlalchemy.orm import Session
-
 sys.path.append(str((Path(__file__) / '..' / '..').resolve()))
 from app import database, models, schemas
-
-
-def create_or_update(db: Session, obj: models.Base, attrs=('id',)):
-    q = db.query(type(obj)).filter_by(**{key: getattr(obj, key) for key in attrs}).first()
-    if not q:
-        db.add(obj)
-        db.commit()
-        db.refresh(obj)
-    else:
-        obj.id = q.id
-        obj = db.merge(obj)
-    return obj
 
 
 def main():
@@ -32,6 +18,12 @@ def main():
     with args.input.open('r') as f:
         data = json.load(f)
 
+    clients = {}
+    talents = {}
+    skills = {}
+    planning_entries = []
+
+    db = database.SessionLocal()
     for i in data:
         full_entry = schemas.PlanningEntryOut(**i)
         talent = schemas.TalentIn(**i)
@@ -39,28 +31,37 @@ def main():
         client = schemas.ClientIn(**i)
         entry = schemas.PlanningEntryIn(**i)
 
-        with database.SessionLocal() as db:
-            talent = models.Talent(id=talent.talentId, name=talent.talentName, grade=talent.talentGrade)
-            if talent.id:
-                talent = create_or_update(db, talent)
+        for t in (talent, manager):
+            if not t.talentId:
+                continue
+            t2 = talents.get(t.talentId, None)
+            if t2 is None:
+                talents[t.talentId] = models.Talent(id=t.talentId, name=t.talentName, grade=t.talentGrade)
+            elif not t2.grade:
+                t2.grade = t.talentGrade
 
-            manager = models.Talent(id=manager.talentId, name=manager.talentName)
-            if manager.id:
-                manager = create_or_update(db, manager)
+        if client.clientId not in clients:
+            clients[client.clientId] = models.Client(
+                id=client.clientId, name=client.clientName, industry=client.industry
+            )
 
-            client = models.Client(id=client.clientId, name=client.clientName, industry=client.industry)
-            client = create_or_update(db, client)
+        entry = models.PlanningEntry(**entry.dict())
+        planning_entries.append(entry)
 
-            entry = models.PlanningEntry(**schemas.PlanningEntryIn(**i).dict())
-            for skill in full_entry.requiredSkills:
-                skill = create_or_update(db, models.Skill(**skill.dict()), ('name', 'category'))
-                entry.requiredSkills.append(skill)
-            for skill in full_entry.optionalSkills:
-                skill = create_or_update(db, models.Skill(**skill.dict()), ('name', 'category'))
-                entry.optionalSkills.append(skill)
+        for skill_type in ('requiredSkills', 'optionalSkills'):
+            target_list = getattr(entry, skill_type)
+            for skill in getattr(full_entry, skill_type):
+                key = (skill.name, skill.category)
+                if key not in skills:
+                    skills[key] = models.Skill(**skill.dict())
+                target_list.append(skills[key])
 
-            db.add(entry)
-            db.commit()
+    db.add_all(talents.values())
+    db.add_all(clients.values())
+    db.add_all(skills.values())
+    db.add_all(planning_entries)
+    db.commit()
+    db.close()
 
 
 if __name__ == '__main__':
