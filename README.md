@@ -1,3 +1,10 @@
+# Setting up the environment and running the server
+
+1. Create venv (optional)
+2. `pip install -r requirements.txt`
+3. `python scripts/import_data.py`
+4. `uvicorn app.main:app`
+
 # Backend Coding Challenge
 
 At aspaara a squad of superheroes works on giving superpowers to planning teams.
