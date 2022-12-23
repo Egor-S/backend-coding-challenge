@@ -43,8 +43,8 @@ class PlanningEntry(Base):
 class Talent(Base):
     __tablename__ = "talents"
     id = Column(String, primary_key=True, index=True)
-    talentName = Column(String)
-    talentGrade = Column(String)
+    name = Column(String)
+    grade = Column(String)
 
 
 class Client(Base):

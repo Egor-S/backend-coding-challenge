@@ -1,7 +1,10 @@
 from typing import Optional, List
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
+
+
+DATETIME_FORMAT = "%m/%d/%Y %I:%M %p"
 
 
 class SkillEntry(BaseModel):
@@ -19,17 +22,37 @@ class PlanningEntryIn(BaseModel):
     officePostalCode: str
     jobManagerId: str = ""
     totalHours: float
-    startDate: datetime  # todo set right format
+    startDate: datetime
     endDate: datetime
     clientId: str
     isUnassigned: bool
 
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.strformat(DATETIME_FORMAT),
+        }
 
-class PlanningEntryOut(PlanningEntryIn):
+    @validator('startDate', 'endDate', pre=True)
+    def time_validate(cls, v):
+        return datetime.strptime(v, DATETIME_FORMAT)
+
+
+class TalentIn(BaseModel):
+    talentId: str = ""
     talentName: str = ""
     talentGrade: str = ""
-    jobManagerName: str = ""
+
+
+class ClientIn(BaseModel):
+    clientId: str
     clientName: str = ""
     industry: str = ""
+
+
+class PlanningEntryOut(PlanningEntryIn, TalentIn, ClientIn):
+    jobManagerName: str = ""
     requiredSkills: Optional[List[SkillEntry]] = []
     optionalSkills: Optional[List[SkillEntry]] = []
+
+    class Config(PlanningEntryIn.Config):
+        orm_mode = True
