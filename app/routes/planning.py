@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from ..dependencies import PaginationParams, SortingParams, get_db
 from ..schemas import PlanningEntryOut, PlanningEntryModel, TalentModel, ClientModel
 from ..models import PlanningEntry
-from ..crud import get_planning_entries, paginate
+from ..crud import get_planning_entries, paginate, sort_entries
 
 router = APIRouter(prefix="/planning")
 
@@ -31,5 +31,6 @@ def get(
         db: Session = Depends(get_db)
 ):
     q = get_planning_entries(db)
+    q = sort_entries(q, sorting)
     q = paginate(q, pagination)
     return [flatten(i) for i in q]

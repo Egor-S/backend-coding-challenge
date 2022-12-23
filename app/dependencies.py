@@ -1,6 +1,10 @@
-from fastapi import Query
+from typing import List, Optional
+from fastapi import Query, HTTPException
+from fastapi.encoders import jsonable_encoder
+from pydantic import ValidationError
 
 from .database import SessionLocal
+from .schemas import ColumnOrder
 
 
 class PaginationParams:
@@ -10,8 +14,21 @@ class PaginationParams:
 
 
 class SortingParams:
-    def __init__(self):
-        pass
+    def __init__(self, sort: Optional[List[str]] = Query(
+        default=None, example="talentId desc"
+    )):
+        self.columns: List[ColumnOrder] = []
+        if not sort:
+            return
+        try:
+            for v in sort:
+                tokens = v.split()
+                if len(tokens) != 2:  # dirty hack
+                    tokens = (tokens + ['', ''])[:2]
+                c, o = tokens
+                self.columns.append(ColumnOrder(column=c, order=o))
+        except ValidationError as e:
+            raise HTTPException(status_code=422, detail=jsonable_encoder(e.errors()))
 
 
 class SearchingParams:

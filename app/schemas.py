@@ -1,5 +1,6 @@
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
+from enum import Enum
 
 from pydantic import BaseModel, validator
 
@@ -86,3 +87,18 @@ class ClientModel(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class Orders(Enum):
+    asc = "asc"
+    desc = "desc"
+
+
+SortableColumns = Literal["id", "originalId", "talentId", "talentName", "talentGrade", "bookingGrade",
+                          "operatingUnit", "officeCity", "officePostalCode", "jobManagerName", "jobManagerId",
+                          "totalHours", "startDate", "endDate", "clientName", "clientId", "industry", "isUnassigned"]
+
+
+class ColumnOrder(BaseModel):
+    column: SortableColumns
+    order: Orders
