@@ -31,11 +31,6 @@ class SortingParams:
             raise HTTPException(status_code=422, detail=jsonable_encoder(e.errors()))
 
 
-class SearchingParams:
-    def __init__(self):
-        pass
-
-
 # from https://fastapi.tiangolo.com/tutorial/sql-databases/#create-a-dependency
 def get_db():
     db = SessionLocal()

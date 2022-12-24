@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..dependencies import PaginationParams, SortingParams, get_db
-from ..schemas import PlanningEntryOut, PlanningEntryModel, TalentModel, ClientModel
+from ..schemas import PlanningEntryOut, PlanningEntryModel, TalentModel, ClientModel, FilteringParams
 from ..models import PlanningEntry
-from ..crud import get_planning_entries, paginate, sort_entries
+from ..crud import get_planning_entries, paginate, sort_entries, filter_entries
 
 router = APIRouter(prefix="/planning")
 
@@ -24,13 +24,27 @@ def flatten(obj: PlanningEntry) -> PlanningEntryOut:
     return PlanningEntryOut(**data)
 
 
-@router.get("/", response_model=List[PlanningEntryOut])
+@router.get("", response_model=List[PlanningEntryOut])
 def get(
         pagination: PaginationParams = Depends(),
         sorting: SortingParams = Depends(),
         db: Session = Depends(get_db)
 ):
     q = get_planning_entries(db)
+    q = sort_entries(q, sorting)
+    q = paginate(q, pagination)
+    return [flatten(i) for i in q]
+
+
+@router.post("/filtering", response_model=List[PlanningEntryOut])
+def get(
+        filtering: FilteringParams,
+        pagination: PaginationParams = Depends(),
+        sorting: SortingParams = Depends(),
+        db: Session = Depends(get_db)
+):
+    q = get_planning_entries(db)
+    q = filter_entries(q, filtering)
     q = sort_entries(q, sorting)
     q = paginate(q, pagination)
     return [flatten(i) for i in q]
